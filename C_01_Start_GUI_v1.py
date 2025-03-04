@@ -1,5 +1,5 @@
 from tkinter import *
-from functools import partial # To prevent unwanted windows
+from functools import partial  # To prevent unwanted windows
 
 
 class StartGame:
@@ -59,11 +59,41 @@ class StartGame:
                                   command=self.check_rounds)
         self.play_button.grid(row=0, column=1)
 
-
     def check_rounds(self):
+
+        # Retrieve temperature to be converted
+        rounds_wanted = self.num_rounds_entry.get()
+
+        # Reset label and entry box (for when users come back to home screen)
+        self.choose_label.config(fg="#009900", font=("Arial", "12", "bold"))
+        self.num_rounds_entry.config(bg="#FFFFFF")
+
+        error = "Oops - Please choose a whole number more than zero."
+        has_errors = "no"
+
+        # Checks that the amount to be converted is a number above absolute zero
+        try:
+            rounds_wanted = int(rounds_wanted)
+            if rounds_wanted > 0:
+                # Temporary success message, replace with call to PlayGame class
+                self.choose_label.config(text=f"You have chosen to play {rounds_wanted} rounds.")
+
+            else:
+                has_errors = "yes"
+
+        except ValueError:
+            has_errors = "yes"
+
+        # Display the error if necessary
+        if has_errors == "yes":
+            self.choose_label.config(text=error, fg="#990000",
+                                     font=("Arial", "10", "bold"))
+            self.num_rounds_entry.config(bg="#F4CCCC")
+            self.num_rounds_entry.delete(0, END)
 
 
 # Main Routine
+
 if __name__ == "__main__":
     root = Tk()
     root.title("Colour Quest")

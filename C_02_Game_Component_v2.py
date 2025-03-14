@@ -109,7 +109,7 @@ class Play:
     def __init__(self, how_many):
 
         # Integers / String Variables
-        self.target_score - IntVar()
+        self.target_score = IntVar()
 
         # Rounds played - start with zero
         self.rounds_played = IntVar()
@@ -127,6 +127,11 @@ class Play:
 
         self.game_frame = Frame(self.play_box)
         self.game_frame.grid(padx=10, pady=10)
+
+        self.hints_button = Button(self.game_frame, font=("Arial", "14", "bold"),
+                                   text="Hints", width=15, fg="#FFFFFF",
+                                   bg="#FF8000", padx=10, pady=10, command=self.to_hints)
+        self.hints_button.grid(row=1)
 
         # Body font for most labels...
         body_font = ("Arial", "12")
@@ -156,13 +161,19 @@ class Play:
         self.colour_frame = Frame(self.game_frame)
         self.colour_frame.grid(row=3)
 
+        self.colour_button_ref = []
+        self.button_colours_list = []
+
         # Create four buttons in a 2 x 2 grid
         for item in range(0, 4):
             self.colour_button = Button(self.colour_frame, font=("Arial", "12", "bold"),
-                                        text="Colour Name", width=15)
+                                        text="Colour Name", width=15,
+                                        command=partial(self.round_results, item))
             self.colour_button.grid(row=item // 2,
                                     column=item % 2,
                                     padx=5, pady=5)
+
+            self.colour_button_ref.append(self.colour_button)
 
             # Frame to hold hints and stats buttons
             self.hints_stats_frame = Frame(self.game_frame)
@@ -170,7 +181,7 @@ class Play:
 
             # List for buttons (frame | text | bg | command | width | row | column)
             control_button_list = [
-                [self.game_frame, "Next Round", "#0057D8", "", 21, 5, None],
+                [self.game_frame, "Next Round", "#0057D8", self.new_round, 21, 5, None],
                 [self.hints_stats_frame, "Hints", "#FF8000", "", 10, 0, 0],
                 [self.hints_stats_frame, "Stats", "#333333", "", 10, 0, 1],
                 [self.game_frame, "End", "#990000", self.close_play, 21, 7, None],
@@ -186,25 +197,14 @@ class Play:
 
                 control_ref_list.append(make_control_button)
 
+            # Retrieve next, stats and end button so that they can be configured
+            self.next_button = control_ref_list[0]
+            self.stats_button = control_ref_list[2]
+            self.end_game_button = control_ref_list[3]
+
             # Once interface has been created, invoke new
             # round function for first round.
             self.new_round()
-
-        # Set target score as median (for later comparison)
-        self.target_score.set(median)
-
-        # Update heading, and score to beat labels. "Hide" results label
-        self.heading_label.config(text=f"Round {rounds_played} of {rounds_wanted}")
-        self.target_label.config(text=f"Target Score: {median}",
-                                 font=("Arial", "14", "bold"))
-        self.results_label.config(text=f"{'=' * 7}", bg="#F0F0F0")
-
-        # Configure buttons using foreground and background colours from list
-        # Enable colour buttons (disabled at the end of the last round)
-        for count, item in enumerate(self.colour_button_ref):
-            item.config(fg=self.round_colour_list[count][2],
-                        bg=self.round_colour_list[count][0],
-                        text=self.round
 
     def new_round(self):
         """
@@ -222,11 +222,146 @@ class Play:
         # Get round colours and median score...
         self.round_colour_list, median = get_round_colours()
 
+        # Set target score as median (for later comparison)
+        self.target_score.set(median)
+
+        # Update heading, and score to beat labels. "Hide" results label
+        self.heading_label.config(text=f"Round {rounds_played} of {rounds_wanted}")
+        self.target_label.config(text=f"Target Score: {median}",
+                                 font=("Arial", "14", "bold"))
+        self.results_label.config(text=f"{'=' * 7}", bg="#F0F0F0")
+
+        # Configure buttons using foreground and background colours from list
+        # Enable colour buttons (disabled at the end of the last round)
+        for count, item in enumerate(self.colour_button_ref):
+            item.config(fg=self.round_colour_list[count][2],
+                        bg=self.round_colour_list[count][0],
+                        text=self.round_colour_list[count][0], state=NORMAL)
+
+        self.next_button.config(state=DISABLED)
+
+    def round_results(self, user_choice):
+        """
+        Retrieves which button was pushed (index 0 - 3), retrieves
+        score and then compares it with median, updates results
+        and adds results to stats list.
+        """
+        # Get user score and colour based on button press...
+        score = int(self.round_colour_list[user_choice][1])
+
+        # Alternate way to get button name. Good for if buttons have been scrambled!
+        colour_name = self.colour_button_ref[user_choice].cget('text')
+
+        # Retrieve target score and compare with user score to find round result
+        target = self.target_score.get()
+        self.all_medians_list.append(target)
+
+        if score >= target:
+            result_text = f"Success! {colour_name} earned you {score} points"
+            result_bg = "#82B366"
+            self.all_scores_list.append(score)
+
+        else:
+            result_text = f"Oops {colour_name} ({score}) is less than the target."
+            result_bg = "#F8CECC"
+            self.all_scores_list.append(0)
+
+        self.results_label.config(text=result_text, bg=result_bg)
+
+        # Enables stats & next buttons, disable colour buttons
+        self.next_button.config(state=NORMAL)
+        self.stats_button.config(state=NORMAL)
+
+        # Check to see if game is over
+        rounds_played = self.rounds_played.get()
+        rounds_wanted = self.rounds_wanted.get()
+
+        if rounds_played == rounds_wanted:
+            self.next_button.config(state=DISABLED, text="Game Over")
+            self.end_game_button.config(text="Play Again", bg="#006600")
+
+        for item in self.colour_button_ref:
+            item.config(state=DISABLED)
+
     def close_play(self):
         # Reshow root (ie: choose rounds) and end current
         # game / allow new game to start
         root.deiconify()
         self.play_box.destroy()
+
+    def to_hints(self):
+        """
+        Displays hints for playing game
+        :return:
+        """
+        DisplayHints(self)
+
+
+class DisplayHints:
+    """
+    Displays hints for colour quest game
+    """
+
+    def __init__(self, partner):
+        # setup dialogue box and background colour
+        background = "#ffe6cc"
+        self.hints_box = Toplevel()
+
+        # Disable hints button
+        partner.hints_button.config(state=DISABLED)
+
+        # If users press cross at top, closes hints and
+        # 'releases' hints button
+        self.hints_box.protocol('WM_DELETE_WINDOW',
+                                partial(self.close_hints, partner))
+
+        self.hints_frame = Frame(self.hints_box, width=300,
+                                 height=200)
+        self.hints_frame.grid()
+
+        self.hints_heading_label = Label(self.hints_frame,
+                                         text="Hints",
+                                         font=("Arial", "14", "bold"))
+        self.hints_heading_label.grid(row=0)
+
+        hints_text = "To use the program, simply enter the temperature " \
+                     "you wish to convert and then choose to convert " \
+                     "to either degrees Celsius (centigrade) or " \
+                     "Fahrenheit... \n\n" \
+                     "Note that -273 degrees C " \
+                     "(-459 F) is absolute zero (the coldest possible " \
+                     "temperature). If you try to convert a " \
+                     "temperature that is less than -273 degrees C, " \
+                     "you will get an error message. \n\n" \
+                     "To see your " \
+                     "calculation history and export it to a text " \
+                     "file, please click the 'History / Export' button. "
+
+        self.hints_text_label = Label(self.hints_frame,
+                                      text=hints_text, wraplength=350,
+                                      justify="left")
+        self.hints_text_label.grid(row=1, padx=10)
+
+        self.dismiss_button = Button(self.hints_frame,
+                                     font=("Arial", "12", "bold"),
+                                     text="Dismiss", bg="#CC6600",
+                                     fg="#FFFFFF",
+                                     command=partial(self.close_hints, partner))
+        self.dismiss_button.grid(row=2, padx=10, pady=10)
+
+        # List and loop to set background colour on everything except the buttons
+        recolour_list = [self.hints_frame, self.hints_heading_label, self.hints_text_label]
+
+        for item in recolour_list:
+            item.config(bg=background)
+
+    def close_hints(self, partner):
+        """
+        Closes hints dialogue box (and enables hints button)
+        """
+        # Put hints button back to normal...
+        partner.hints_button.config(state=NORMAL)
+        self.hints_box.destroy()
 
 
 # Main Routine

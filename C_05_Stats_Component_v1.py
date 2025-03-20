@@ -184,32 +184,12 @@ class Stats:
         stats_comment_label = stats_label_ref_list[4]
         stats_comment_label.config(bg=comment_colour)
 
-
-
         self.stats_heading_label = Label(self.stats_frame,
                                          text="Stats",
                                          font=("Arial", "14", "bold"))
         self.stats_heading_label.grid(row=0)
 
-        stats_text = "STATS GO HERE"
-
-        self.stats_text_label = Label(self.stats_frame,
-                                      text=stats_text, wraplength=350,
-                                      justify="left")
-        self.stats_text_label.grid(row=1, padx=10)
-
-        self.dismiss_button = Button(self.stats_frame,
-                                     font=("Arial", "12", "bold"),
-                                     text="Dismiss", bg="#CC6600",
-                                     fg="#FFFFFF",
-                                     command=partial(self.close_stats, partner))
-        self.dismiss_button.grid(row=2, padx=10, pady=10)
-
-        # List and loop to set background colour on everything except the buttons
-        recolour_list = [self.stats_frame, self.stats_heading_label, self.stats_text_label]
-
-        for item in recolour_list:
-            item.config(bg=background)
+        # Closes stats dialogue (used by button and x top of dialogue)
 
     def close_stats(self, partner):
         """

@@ -219,6 +219,7 @@ class Play:
         # Retrieve Labels so they can be configured later
         self.heading_label = play_labels_ref[0]
         self.target_label = play_labels_ref[1]
+        self.choose_label = play_labels_ref[2]
         self.results_label = play_labels_ref[3]
 
         # Set up colour buttons...
@@ -255,7 +256,8 @@ class Play:
         control_ref_list = []
         for item in control_button_list:
             make_control_button = Button(item[0], text=item[1], bg=item[2],
-                                         command=item[3], font=("Arial", "16", "bold"),
+                                         command=item[3], font=("Arial",
+                                                                "16", "bold"),
                                          fg="#FFFFFF", width=item[4])
             make_control_button.grid(row=item[5], column=item[6], padx=5, pady=5)
 
@@ -281,8 +283,6 @@ class Play:
 
         # Retrieve number of rounds played, add one to it and configure heading
         rounds_played = self.rounds_played.get()
-
-        rounds_played += 1
         self.rounds_played.set(rounds_played)
 
         rounds_wanted = self.rounds_wanted.get()
@@ -297,7 +297,7 @@ class Play:
         self.all_high_score_list.append(highest)
 
         # Update heading, and score to beat labels. "Hide" results label
-        self.heading_label.config(text=f"Round {rounds_played} of {rounds_wanted}")
+        self.heading_label.config(text=f"Round {rounds_played + 1} of {rounds_wanted}")
         self.target_label.config(text=f"Target Score: {median}",
                                  font=("Arial", "14", "bold"))
         self.results_label.config(text=f"{'=' * 7}", bg="#F0F0F0")
@@ -354,12 +354,35 @@ class Play:
         self.next_button.config(state=NORMAL)
         self.stats_button.config(state=NORMAL)
 
-        # Check to see if game is over
+        # Get user score and colour based on button press...
+        score = int(self.round_colour_list[user_choice][1])
+
+        # Add one to the number of rounds played and retrieve
+        # the number of rounds won
         rounds_played = self.rounds_played.get()
+        rounds_played += 1
+        self.rounds_played.set(rounds_played)
+
+        # Check to see if game is over
         rounds_wanted = self.rounds_wanted.get()
 
+        rounds_won = self.rounds_won.get()
+
+        # Code for when game ends
         if rounds_played == rounds_wanted:
+            # Work out success rate
+            success_rate = rounds_won / rounds_played * 100
+            success_string = (f"Success Rate: "
+                              f"{rounds_won} / {rounds_played}"
+                              f"({success_rate:.0f}%")
+
+            # Configure end game labels / buttons
+            self.heading_label.config(text="Game Over")
+            self.target_label.config(text=success_string)
+            self.choose_label.config(text="Please click the stats"
+                                          "button for more info.")
             self.next_button.config(state=DISABLED, text="Game Over")
+            self.stats_button.config(bg="#990000")
             self.end_game_button.config(text="Play Again", bg="#006600")
 
         for item in self.colour_button_ref:
